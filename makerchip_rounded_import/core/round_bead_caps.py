@@ -112,8 +112,8 @@ def classify_terminals(mesh, metadata, tolerance=ENDPOINT_TOLERANCE_MM):
 def round_caps(mesh, metadata, intermediate_rings=None, extent_fraction=.5):
     if not 0 < extent_fraction <= .5:
         raise ValueError('extent_fraction must be >0 and <=0.5')
-    if intermediate_rings is not None and not 1 <= intermediate_rings <= 8:
-        raise ValueError('intermediate_rings must be1..8 or None')
+    if intermediate_rings is not None and not 1 <= intermediate_rings <= 15:
+        raise ValueError('intermediate_rings must be1..15 or None')
     begun=time.perf_counter()
     oldv=np.asarray(mesh['vertices']);oldn=np.asarray(mesh['vertex_normals'])
     oldq=np.asarray(mesh['quads']);oldt=np.asarray(mesh['triangles'])
@@ -166,7 +166,7 @@ def round_caps(mesh, metadata, intermediate_rings=None, extent_fraction=.5):
             profile_normals=oldn[ring_old].astype(float)
             support=np.einsum('ij,ij->i',profile_normals,profile)
             extent=float(p['width_mm'])*extent_fraction
-            count=intermediate_rings if intermediate_rings is not None else (2 if k==6 else 3)
+            count=intermediate_rings if intermediate_rings is not None else 7
             previous=ring_old-vs
             # Match a boundary edge to the corresponding old cap triangle for
             # source-face binding, independent of old transformed winding.
@@ -230,7 +230,7 @@ def round_caps(mesh, metadata, intermediate_rings=None, extent_fraction=.5):
     result['bounds_mm']=[out['vertices'].min(axis=0).astype(float).tolist(),out['vertices'].max(axis=0).astype(float).tolist()]
     result['rounded_terminals']={
         'algorithm':'Scaled original section ellipsoidal dome, with exact shared base ring.',
-        'intermediate_rings':intermediate_rings if intermediate_rings is not None else '2 for ring6,3 for ring8/10',
+        'intermediate_rings':intermediate_rings if intermediate_rings is not None else 7,
         'extent_fraction_of_width':extent_fraction,
         'counts':dict(Counter(reason for pair in reasons for reason in pair)),
         'internal_join_count':len(joins),'internal_joins':joins,'endpoint_match_tolerance_mm':ENDPOINT_TOLERANCE_MM,
@@ -258,6 +258,12 @@ def audit_mesh(mesh,metadata,source=None):
     crosses=np.cross(v[triangles[:,1]]-v[triangles[:,0]],v[triangles[:,2]]-v[triangles[:,0]])
     area=np.linalg.norm(crosses,axis=1)/2
     reference=np.einsum('ij,ij->i',crosses,n[triangles].mean(axis=1))
+    # Radial sector closures use explicit flat loop normals in Blender.
+    # Their curved boundary vertex normals are tangent to the cut plane.
+    # Edge orientation and positive volume below independently check winding.
+    if 'quad_face_kind' in mesh and 'triangle_face_kind' in mesh:
+        flat_radial=np.concatenate((mesh['quad_face_kind']==4,mesh['quad_face_kind']==4,mesh['triangle_face_kind']==4))
+        reference[flat_radial]=0
     edges=np.concatenate((np.stack((q,np.roll(q,-1,axis=1)),axis=-1).reshape(-1,2),
                           np.stack((t,np.roll(t,-1,axis=1)),axis=-1).reshape(-1,2)))
     keys=np.minimum(edges[:,0],edges[:,1]).astype(np.int64)*len(v)+np.maximum(edges[:,0],edges[:,1])

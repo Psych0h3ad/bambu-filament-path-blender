@@ -1,24 +1,29 @@
-## Bambu Rounded Beads 1.0.0
+## Bambu Rounded Beads 1.1.0
 
-Bambu StudioのG-codeから、積層と押し出し端の丸みを持つメッシュを作るBlenderアドオンです。
+押し出しが止まる端に加えて、**外壁・内壁の曲がりも丸く**なりました。初期設定のままで、積層の断面・端・長い曲線を滑らかにレンダリングできます。
 
-**下のAssetsから `Bambu_Rounded_Beads-1.0.0.zip` をダウンロードし、BlenderのPreferences → Add-ons → Install from Diskでインストールしてください。** 自動生成されるSource code ZIPとは別です。
+- 断面26点（円形・縦長楕円は24点）、端11リング、壁の円弧64分割相当以上へ高精細化。
+- G2/G3円弧の弦誤差を0.005mmから0.001mmへ改善。元の移動終点・線幅・積層ピッチを維持します。
+- 重複する平らな上面が黒い斑点に見える問題を修正。
 
-- 線幅・積層ピッチ・フィラメント色をG-codeから取得
-- 実際の開いた経路端を丸め、途中の分割点には余計な膨らみを追加しない
-- Windows版Blender 5.2.1 LTSでインストール・読み込み確認済み
-- 日英READMEとGPL-3.0-or-laterライセンスを同梱
+下のAssetsから **`Bambu_Rounded_Beads-1.1.0.zip`** をダウンロードし、Blenderの **Preferences → Add-ons → Install from Disk** でインストールしてください。
 
-レンダリング用の形状近似です。樹脂の流動・融着のシミュレーションではありません。
+**更新後はBlenderを終了して再起動し、G-codeを再インポートします。** 前のメッシュは自動更新されません。元のOBJや古い読み込み結果は、Outlinerの目とカメラを両方オフにして重ならないようにしてください。
+
+高精細な形状はメモリを使います。まず1個のオブジェクトで試してみてください。
 
 ---
 
-Create Blender meshes with visible printed layers and rounded extrusion terminals from annotated Bambu Studio G-code.
+**Outer and inner wall bends are now rounded, alongside genuine extrusion ends.** The defaults produce smoother bead sections, terminals, and long curves.
 
-Download the **`Bambu_Rounded_Beads-1.0.0.zip` release asset** and use Blender Preferences → Add-ons → Install from Disk. The automatic source-code archives are not the installable asset.
+- Higher geometric resolution: 26-point sections (24 for circles/vertical ellipses), 11 intermediate terminal rings, and wall arcs equivalent to at least 64 segments per circle.
+- Refine G2/G3 chord error from 0.005 mm to 0.001 mm while retaining source move endpoints, line widths, and layer heights.
+- Fix dark specks caused by overlapping flat top faces.
 
-Preserves source dimensions and filament IDs, rounds real open ends, and avoids expanding caps at continuous-path subdivisions. Tested on Blender 5.2.1 LTS for Windows. Includes Japanese/English instructions and GPL-3.0-or-later licensing.
+Download **`Bambu_Rounded_Beads-1.1.0.zip`** below and install through **Preferences → Add-ons → Install from Disk**.
 
-This is illustrative rendering geometry, not fused-polymer simulation.
+**Quit and restart Blender after updating, then re-import the G-code.** Existing meshes are not updated automatically. Disable both the eye and camera icons for overlapping native or older imported objects. High resolution requires more memory; start with one object.
+
+Includes Japanese/English documentation and GPL-3.0-or-later licensing. This is rendering geometry, not a polymer-flow simulation.
 
 [使い方 / Documentation](https://github.com/Psych0h3ad/bambu-rounded-beads-blender) · [開発を応援する / GitHub Sponsors](https://github.com/sponsors/Psych0h3ad)

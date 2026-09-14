@@ -29,7 +29,7 @@ output = ROOT / 'test-output'
 output.mkdir(exist_ok=True)
 with tempfile.TemporaryDirectory(dir=output) as folder:
     path = Path(folder) / 'synthetic.gcode'
-    path.write_text(synthetic_gcode(), encoding='utf-8')
+    path.write_text(synthetic_gcode().replace('FEATURE: Top surface', 'FEATURE: Outer wall').replace('G1 X10 Y0', 'G1 X5 Y5'), encoding='utf-8')
     before = hashlib.sha256(path.read_bytes()).hexdigest()
     result = bpy.ops.import_scene.bambu_rounded_beads(filepath=str(path))
     assert result == {'FINISHED'}, result
@@ -41,6 +41,14 @@ with tempfile.TemporaryDirectory(dir=output) as folder:
     assert abs(obj.dimensions.z - .0001) < 1e-9
     assert obj['source_gcode'] == 'synthetic.gcode'
     assert obj.data.has_custom_normals
+    assert obj['cap_intermediate_rings'] == 11
+    assert json.loads(obj['round_wall_corners'])['count'] == 1
+    flat_faces = [face for face in obj.data.polygons if not face.use_smooth]
+    assert flat_faces
+    for face in flat_faces:
+        for loop in face.loop_indices:
+            assert (obj.data.corner_normals[loop].vector-face.normal).length < .001
+    assert json.loads(obj['coplanar_top_cleanup'])['plane_offset_mm'] == 0
     assert all(face.material_index == 1 for face in obj.data.polygons)
     assert obj.data.materials[2]['source_filament_color'] == '#000000'
     assert obj.data.materials[2]['display_color'] == '#333333'

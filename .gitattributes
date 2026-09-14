@@ -1,1 +1,7 @@
 * text=auto eol=lf
+
+# Preserve archive inputs byte-for-byte across Windows and other checkouts.
+/makerchip_rounded_import/** -text
+/README.md -text
+/README.en.md -text
+/LICENSE -text

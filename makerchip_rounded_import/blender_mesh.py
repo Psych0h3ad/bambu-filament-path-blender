@@ -61,7 +61,10 @@ def create_object(context, arrays, metadata, name='MakerChip_Rounded', center_xy
         mesh.polygons.foreach_set('loop_start', loop_starts)
         mesh.polygons.foreach_set('loop_total', loop_totals)
         mesh.polygons.foreach_set('material_index', material_indices)
-        mesh.polygons.foreach_set('use_smooth', np.ones(nq+nt, dtype=bool))
+        face_kinds = np.concatenate((np.asarray(arrays.get('quad_face_kind', np.zeros(nq)),dtype=np.uint8),
+                                    np.asarray(arrays.get('triangle_face_kind', np.zeros(nt)),dtype=np.uint8)))
+        flat = face_kinds == 4
+        mesh.polygons.foreach_set('use_smooth', ~flat)
         mesh.update()
         for i, color in enumerate(colors):
             material = bpy.data.materials.new(f'{name} · Filament {i+1} {color}')
@@ -80,7 +83,19 @@ def create_object(context, arrays, metadata, name='MakerChip_Rounded', center_xy
             shader.inputs['Specular IOR Level'].default_value = .20
             mesh.materials.append(material)
         if 'vertex_normals' in arrays:
-            mesh.normals_split_custom_set_from_vertices(np.asarray(arrays['vertex_normals'], dtype=np.float32))
+            vertex_normals = np.asarray(arrays['vertex_normals'], dtype=np.float32)
+            if flat.any():
+                loop_normals = vertex_normals[loop_vertices]
+                face_normals = np.empty((nq+nt,3),dtype=np.float32)
+                mesh.polygons.foreach_get('normal',face_normals.ravel())
+                for total in (3,4):
+                    indexes = np.flatnonzero(flat & (loop_totals==total))
+                    for corner in range(total):
+                        loop_normals[loop_starts[indexes]+corner]=face_normals[indexes]
+                mesh.normals_split_custom_set(loop_normals)
+                del loop_normals,face_normals
+            else:
+                mesh.normals_split_custom_set_from_vertices(vertex_normals)
         obj = bpy.data.objects.new(name, mesh)
         context.collection.objects.link(obj)
         for old in context.selected_objects:
@@ -94,6 +109,14 @@ def create_object(context, arrays, metadata, name='MakerChip_Rounded', center_xy
         obj['source_filament_colors'] = json.dumps(colors)
         obj['match_native_black'] = match_native_black
         obj['rounded_caps'] = json.dumps(metadata.get('rounded_terminals', {}).get('counts', {}))
+        obj['cap_intermediate_rings'] = int(metadata.get('rounded_terminals', {}).get('intermediate_rings', 11))
+        joins = metadata.get('round_path_joins', {})
+        obj['round_wall_corners'] = json.dumps({key: joins.get(key) for key in (
+            'count', 'outer_sector_count', 'full_disk_short_segment_count',
+            'section_resolution', 'minimum_angular_sides', 'angular_chord_error_mm')})
+        cleanup = metadata.get('coplanar_cleanup', {})
+        obj['coplanar_top_cleanup'] = json.dumps({key: cleanup.get(key) for key in (
+            'changed_top_quads', 'new_intersection_vertices', 'original_vertices_unchanged', 'plane_offset_mm')})
         obj['visualization_note'] = 'Illustrative bead geometry; not a fused polymer flow simulation.'
         context.view_layer.update()
         return obj

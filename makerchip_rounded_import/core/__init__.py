@@ -14,11 +14,12 @@ import math
 import re
 import time
 import numpy as np
-from . import bead_mesh, round_bead_caps
+from . import bead_mesh, round_bead_caps, coplanar_cleanup, round_path_joins
 
 PARAMS = re.compile(r'([XYZEFIJ])(-?(?:\d*\.)?\d+)')
 GCODE = re.compile(r'^(G0|G1|G2|G3)(?:\s|$)')
 TOOL = re.compile(r'^T(\d+)(?:\s|$)')
+ARC_CHORD_ERROR_MM = .001
 VALID_FEATURES = {'Outer wall','Inner wall','Top surface','Bottom surface',
     'Internal solid infill','Sparse infill','Gap infill','Bridge','Overhang wall',
     'Internal Bridge','Floating vertical shell','Ironing','Support','Support interface','Support transition'}
@@ -35,7 +36,7 @@ def transform_arc(start,end,p,clockwise):
         sweep -= math.tau
     elif sweep < 1e-10:
         sweep = math.tau
-    step = min(math.pi/8,2*math.acos(max(-1,1-0.005/radius)))
+    step = min(math.pi/8,2*math.acos(max(-1,1-ARC_CHORD_ERROR_MM/radius)))
     steps = max(1,math.ceil(abs(sweep)/max(step,1e-4)))
     result = [[cx+radius*math.cos(a+sweep*i/steps),cy+radius*math.sin(a+sweep*i/steps),start[2]+(end[2]-start[2])*i/steps] for i in range(1,steps)]
     return result+[end]
@@ -225,25 +226,28 @@ def extract_paths(filepath, object_label=None):
                  'layer_count': len(layers), 'layer_tops_mm': sorted(layers),
                  'path_count': len(paths), 'continuous_path_count': continuous_path_id,
                  'segment_count': sum(len(p['points_mm']) - 1 for p in paths),
-                 'arc_move_count': arc_count, 'deposited_move_count_by_feature': dict(counts),
+                 'arc_move_count': arc_count, 'arc_chord_error_mm': ARC_CHORD_ERROR_MM,
+                 'deposited_move_count_by_feature': dict(counts),
                  'width_range_mm': [min(p['width_mm'] for p in paths), max(p['width_mm'] for p in paths)],
                  'height_values_mm': sorted(set(p['layer_height_mm'] for p in paths)),
                  'included_features': sorted(set(p['feature'] for p in paths))})
     return paths, info
 
-def build_from_gcode(filepath, object_label=None, ring_resolution=10,
-                     intermediate_rings=3, simplify_tolerance_mm=0., audit=False,
-                     progress_callback=None):
+def build_from_gcode(filepath, object_label=None, ring_resolution=26,
+                     intermediate_rings=11, simplify_tolerance_mm=0., audit=False,
+                     progress_callback=None, round_wall_corners=True):
     begun = time.perf_counter()
     def progress(message):
         if progress_callback:
             progress_callback(message)
-    if ring_resolution not in (6, 10):
-        raise ValueError('ring_resolution must be 6 or 10')
-    if not 1 <= intermediate_rings <= 8:
-        raise ValueError('intermediate_rings must be between 1 and 8')
+    if ring_resolution not in (6, 10, 26):
+        raise ValueError('ring_resolution must be 6, 10, or 26')
+    if not 1 <= intermediate_rings <= 15:
+        raise ValueError('intermediate_rings must be between 1 and 15')
     if simplify_tolerance_mm < 0:
         raise ValueError('simplify_tolerance_mm must be nonnegative')
+    if round_wall_corners and simplify_tolerance_mm != 0:
+        raise ValueError('Round wall corners requires original paths without simplification')
     progress('Reading object paths and filament colors')
     paths, info = extract_paths(filepath, object_label)
     # Remove large bed offsets before float32 meshing; this improves tiny-feature
@@ -257,6 +261,11 @@ def build_from_gcode(filepath, object_label=None, ring_resolution=10,
         # retain path identity, features, and exact dimension tags.
         path.pop('segment_gcode_lines', None)
         path.pop('segment_source_move_ids', None)
+    joins, preparation = [], {}
+    if round_wall_corners:
+        progress('Preparing round outer and inner wall bends')
+        paths, joins, preparation = round_path_joins.split_for_round_joins(
+            paths, max_miter_excess_mm=.001, features={'Outer wall', 'Inner wall'})
     progress('Sweeping the original widths and layer heights')
     mesh, meta = bead_mesh.mesh_polylines(paths, ring_resolution=ring_resolution,
                                          simplify_tolerance_mm=simplify_tolerance_mm)
@@ -273,11 +282,33 @@ def build_from_gcode(filepath, object_label=None, ring_resolution=10,
         report['rounded_terminal_audit'] = round_bead_caps.audit_mesh(result, report, source=mesh)
         if not report['rounded_terminal_audit']['pass']:
             raise ValueError('Generated geometry did not pass its topology audit')
+    if round_wall_corners:
+        progress('Adding high resolution round wall corners')
+        result, report = round_path_joins.append_round_joins(result, report, joins, bead_mesh._section,
+            angular_error_mm=.00025, section_resolution=ring_resolution, min_sides=64)
+        report['round_join_preparation'] = preparation
+        if audit:
+            report['round_join_audit'] = round_bead_caps.audit_mesh(result, report)
+            if not report['round_join_audit']['pass']:
+                raise ValueError('Round corner geometry did not pass its topology audit')
+    # Audit intact bead volumes above. Removing already-covered top surface
+    # fragments is a surface operation, so old contiguous bead ranges retire.
+    del mesh
+    progress('Removing duplicate coplanar top coverage')
+    result, cleanup = coplanar_cleanup.top_cleanup(result)
+    report['source_bead_paths'] = report.pop('paths')
+    report['pre_cleanup_counts'] = report['counts'].copy()
+    report['counts'].update(vertices=len(result['vertices']), quads=len(result['quads']), triangles=len(result['triangles']))
+    report['coplanar_cleanup'] = cleanup
+    report['path_range_scope'] = 'Source bead paths refer to the pre-cleanup mesh; output arrays intentionally omit stale per-path ranges.'
+    report['source_path_ranges_columns'] = report.pop('path_ranges_columns', [])
+    report['rounded_terminal_audit_scope'] = 'Pre-cleanup closed bead components. Final surface cleanup preserves source coordinates and removes duplicate same-material, exact-plane top coverage; independent bead watertightness is not asserted afterward.'
+    report['npz_schema'] = {key: {'shape': list(value.shape), 'dtype': str(value.dtype)} for key, value in result.items()}
     report.update({'source_gcode': Path(filepath).name, 'gcode': info,
                    'normalization_removed_xyz_mm': offset,
                    'coordinate_system': 'Millimeters, bed XY offset removed; original deposition Z. GUI may center final mesh bounds and place its bottom at zero.',
                    'elapsed_build_seconds': time.perf_counter()-begun,
                    'array_bytes': sum(v.nbytes for v in result.values()),
-                   'scope': 'Annotated Bambu G-code, selected object, all feature roles including exposed sparse infill. Stadium bodies plus illustrative real end domes; separate volumes may overlap. No smoothing, reslicing, Boolean fusion, or physical flow simulation.'})
+                   'scope': 'Annotated Bambu G-code, selected object, all feature roles including exposed sparse infill. High resolution bead sections and genuine end domes; round convex joins on Outer wall and Inner wall. Coplanar top coverage cleanup retains exact source coordinates. Separate volumes may overlap. No centerline smoothing, reslicing, Boolean fusion, or physical flow simulation.'})
     progress('Rounded geometry ready')
     return result, report

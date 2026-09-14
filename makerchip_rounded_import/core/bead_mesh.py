@@ -139,8 +139,8 @@ def simplify_polyline(points,tolerance=.01):
 def _section(width,height,ring_resolution=10):
     if width<=0 or height<=0:
         raise ValueError('Nonpositive extrusion width/height')
-    if ring_resolution not in (6,10):
-        raise ValueError('ring_resolution must be6 (render LOD) or10 (default)')
+    if ring_resolution not in (6,10,26):
+        raise ValueError('ring_resolution must be 6, 10, or 26')
     if width>height+1e-9:
         # CCW in lateral/vertical coordinates; ring normal is forward tangent.
         half=ring_resolution//2
@@ -151,7 +151,8 @@ def _section(width,height,ring_resolution=10):
         nu,nv=np.cos(theta),np.sin(theta)
         kind=f'horizontal_stadium_{ring_resolution}'
     else:
-        count=8 if ring_resolution==10 else 6
+        # Multiples of four include the exact width/height extrema.
+        count=24 if ring_resolution==26 else (8 if ring_resolution==10 else 6)
         theta=np.arange(count)*2*math.pi/count
         u=np.cos(theta)*width/2
         v=np.sin(theta)*height/2

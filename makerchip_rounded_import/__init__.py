@@ -5,10 +5,10 @@
 bl_info = {
     'name': 'Bambu Rounded Beads',
     'author': 'Psych0h3ad.tech',
-    'version': (1, 0, 0),
+    'version': (1, 1, 0),
     'blender': (4, 5, 0),
     'location': 'File > Import > Bambu G-code — Rounded Beads (.gcode)',
-    'description': 'Create illustrated extrusion beads and rounded real path ends from Bambu G-code',
+    'description': 'Create high resolution print beads, rounded ends and wall bends from Bambu G-code',
     'category': 'Import-Export',
     'doc_url': 'https://github.com/Psych0h3ad/bambu-rounded-beads-blender',
     'tracker_url': 'https://github.com/Psych0h3ad/bambu-rounded-beads-blender/issues',
@@ -23,7 +23,7 @@ from .blender_mesh import create_object
 
 
 class IMPORT_SCENE_OT_bambu_rounded_beads(bpy.types.Operator, ImportHelper):
-    """Read one object's Bambu G-code; create a rendering mesh with rounded path ends"""
+    """Read one object's Bambu G-code with smooth bead sections, rounded ends and wall bends"""
     bl_idname = 'import_scene.bambu_rounded_beads'
     bl_label = 'Import Rounded Beads'
     bl_options = {'REGISTER', 'UNDO'}
@@ -39,6 +39,9 @@ class IMPORT_SCENE_OT_bambu_rounded_beads(bpy.types.Operator, ImportHelper):
     match_native_black: BoolProperty(
         name='Match Native Black', default=True,
         description='Display source #000000 as #333333 to match the native Bambu OBJ palette; preserve original color IDs')
+    round_wall_corners: BoolProperty(
+        name='Round Wall Corners', default=True,
+        description='Round the outer and inner wall bends without moving the G-code centerline')
 
     def draw(self, context):
         layout = self.layout
@@ -46,9 +49,13 @@ class IMPORT_SCENE_OT_bambu_rounded_beads(bpy.types.Operator, ImportHelper):
         layout.prop(self, 'object_label')
         layout.prop(self, 'center_xy')
         layout.prop(self, 'match_native_black')
+        layout.prop(self, 'round_wall_corners')
         box = layout.box()
         box.label(text='Width / layer height: from G-code')
-        box.label(text='Section: 10 points; dome: 3 rings')
+        box.label(text='High quality: smooth curves and ends')
+        box.label(text='Section: 26 points; dome: 11 rings')
+        box.label(text='Wall arcs: 64-segment equivalent or finer')
+        box.label(text='G-code arc error: 0.001 mm')
         box.label(text='End extent: half the local line width')
         box.label(text='No path simplification')
         layout.label(text='Large files may take a few minutes.')
@@ -73,7 +80,8 @@ class IMPORT_SCENE_OT_bambu_rounded_beads(bpy.types.Operator, ImportHelper):
             context.window_manager.progress_update(10)
             arrays, metadata = build_from_gcode(
                 path, object_label=selected_label,
-                ring_resolution=10, intermediate_rings=3, simplify_tolerance_mm=0)
+                ring_resolution=26, intermediate_rings=11, simplify_tolerance_mm=0,
+                round_wall_corners=self.round_wall_corners)
             context.window_manager.progress_update(80)
             metadata['source_gcode'] = path.name
             obj = create_object(
@@ -81,7 +89,7 @@ class IMPORT_SCENE_OT_bambu_rounded_beads(bpy.types.Operator, ImportHelper):
                 center_xy=self.center_xy, match_native_black=self.match_native_black)
             obj['source_object_label'] = str(selected_label or labels[0])
             context.window_manager.progress_update(100)
-            self.report({'INFO'}, f'Created {obj.name}: {len(obj.data.vertices):,} vertices. Hide the native chip before rendering.')
+            self.report({'INFO'}, f'Created {obj.name}: {len(obj.data.vertices):,} vertices. Hide the previous native chip in BOTH viewport and render.')
             return {'FINISHED'}
         except Exception as exc:
             traceback.print_exc()
