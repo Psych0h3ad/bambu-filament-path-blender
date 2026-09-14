@@ -24,6 +24,10 @@ else:
     import makerchip_rounded_import as addon
     addon.register()
 
+assert addon.bl_info['name'] == 'Bambu Filament Path'
+assert addon.bl_info['version'] == (1, 1, 1)
+assert addon.IMPORT_SCENE_OT_bambu_rounded_beads.bl_label == 'Import Filament Path'
+
 existing = {obj.name for obj in bpy.data.objects}
 output = ROOT / 'test-output'
 output.mkdir(exist_ok=True)
@@ -35,6 +39,7 @@ with tempfile.TemporaryDirectory(dir=output) as folder:
     assert result == {'FINISHED'}, result
     obj = bpy.context.view_layer.objects.active
     assert obj.name.startswith('MakerChip_Rounded')
+    assert obj['makerchip_importer'] == 'Bambu Filament Path'
     assert existing.issubset({item.name for item in bpy.data.objects})
     assert tuple(obj.scale) == (1, 1, 1)
     assert tuple(obj.location) == (0, 0, 0)

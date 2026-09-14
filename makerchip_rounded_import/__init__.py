@@ -3,15 +3,15 @@
 
 """Blender GUI for the bundled, explicit Bambu G-code visualization pipeline."""
 bl_info = {
-    'name': 'Bambu Rounded Beads',
+    'name': 'Bambu Filament Path',
     'author': 'Psych0h3ad.tech',
-    'version': (1, 1, 0),
+    'version': (1, 1, 1),
     'blender': (4, 5, 0),
-    'location': 'File > Import > Bambu G-code — Rounded Beads (.gcode)',
-    'description': 'Create high resolution print beads, rounded ends and wall bends from Bambu G-code',
+    'location': 'File > Import > Bambu G-code — Filament Path (.gcode)',
+    'description': 'Render filament paths with smooth cross-sections, rounded ends and wall bends',
     'category': 'Import-Export',
-    'doc_url': 'https://github.com/Psych0h3ad/bambu-rounded-beads-blender',
-    'tracker_url': 'https://github.com/Psych0h3ad/bambu-rounded-beads-blender/issues',
+    'doc_url': 'https://github.com/Psych0h3ad/bambu-filament-path-blender',
+    'tracker_url': 'https://github.com/Psych0h3ad/bambu-filament-path-blender/issues',
 }
 
 from pathlib import Path
@@ -23,9 +23,9 @@ from .blender_mesh import create_object
 
 
 class IMPORT_SCENE_OT_bambu_rounded_beads(bpy.types.Operator, ImportHelper):
-    """Read one object's Bambu G-code with smooth bead sections, rounded ends and wall bends"""
+    """Read one object's Bambu G-code with smooth filament cross-sections, rounded ends and wall bends"""
     bl_idname = 'import_scene.bambu_rounded_beads'
-    bl_label = 'Import Rounded Beads'
+    bl_label = 'Import Filament Path'
     bl_options = {'REGISTER', 'UNDO'}
     filename_ext = '.gcode'
 
@@ -101,7 +101,7 @@ class IMPORT_SCENE_OT_bambu_rounded_beads(bpy.types.Operator, ImportHelper):
 
 def import_menu(self, context):
     self.layout.operator(IMPORT_SCENE_OT_bambu_rounded_beads.bl_idname,
-                         text='Bambu G-code — Rounded Beads (.gcode)')
+                         text='Bambu G-code — Filament Path (.gcode)')
 
 
 def register():

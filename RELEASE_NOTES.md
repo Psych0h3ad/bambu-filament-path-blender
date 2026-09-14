@@ -1,29 +1,17 @@
-## Bambu Rounded Beads 1.1.0
+## Bambu Filament Path 1.1.1
 
-押し出しが止まる端に加えて、**外壁・内壁の曲がりも丸く**なりました。初期設定のままで、積層の断面・端・長い曲線を滑らかにレンダリングできます。
+製品名を **Bambu Filament Path** に統一しました。Blenderの表示名・インポートメニュー・ボタン・ドキュメント・配布ZIPを更新しています。**形状処理と初期設定はv1.1.0と同じです。**
 
-- 断面26点（円形・縦長楕円は24点）、端11リング、壁の円弧64分割相当以上へ高精細化。
-- G2/G3円弧の弦誤差を0.005mmから0.001mmへ改善。元の移動終点・線幅・積層ピッチを維持します。
-- 重複する平らな上面が黒い斑点に見える問題を修正。
+Assetsの **`Bambu_Filament_Path-1.1.1.zip`** を、Blenderの **Preferences → Add-ons → Install from Disk** からインストールしてください。既存版を上書きして更新できます。更新後はBlenderを終了して再起動します。
 
-下のAssetsから **`Bambu_Rounded_Beads-1.1.0.zip`** をダウンロードし、Blenderの **Preferences → Add-ons → Install from Disk** でインストールしてください。
-
-**更新後はBlenderを終了して再起動し、G-codeを再インポートします。** 前のメッシュは自動更新されません。元のOBJや古い読み込み結果は、Outlinerの目とカメラを両方オフにして重ならないようにしてください。
-
-高精細な形状はメモリを使います。まず1個のオブジェクトで試してみてください。
+読み込みは **File → Import → Bambu G-code — Filament Path (.gcode)**、実行ボタンは **Import Filament Path** です。以前のリリース・配布ファイルは引き続き利用できます。
 
 ---
 
-**Outer and inner wall bends are now rounded, alongside genuine extrusion ends.** The defaults produce smoother bead sections, terminals, and long curves.
+The product is now **Bambu Filament Path**. This patch updates the Blender name, import menu, button, documentation, and ZIP filename. **Geometry and defaults are unchanged from v1.1.0.**
 
-- Higher geometric resolution: 26-point sections (24 for circles/vertical ellipses), 11 intermediate terminal rings, and wall arcs equivalent to at least 64 segments per circle.
-- Refine G2/G3 chord error from 0.005 mm to 0.001 mm while retaining source move endpoints, line widths, and layer heights.
-- Fix dark specks caused by overlapping flat top faces.
+Install **`Bambu_Filament_Path-1.1.1.zip`** through **Preferences → Add-ons → Install from Disk**, then quit and restart Blender. Existing installations can be updated in place; internal module and operator IDs remain compatible.
 
-Download **`Bambu_Rounded_Beads-1.1.0.zip`** below and install through **Preferences → Add-ons → Install from Disk**.
+Choose **File → Import → Bambu G-code — Filament Path (.gcode)** and click **Import Filament Path**. Previous releases and assets remain available.
 
-**Quit and restart Blender after updating, then re-import the G-code.** Existing meshes are not updated automatically. Disable both the eye and camera icons for overlapping native or older imported objects. High resolution requires more memory; start with one object.
-
-Includes Japanese/English documentation and GPL-3.0-or-later licensing. This is rendering geometry, not a polymer-flow simulation.
-
-[使い方 / Documentation](https://github.com/Psych0h3ad/bambu-rounded-beads-blender) · [開発を応援する / GitHub Sponsors](https://github.com/sponsors/Psych0h3ad)
+[使い方 / Documentation](https://github.com/Psych0h3ad/bambu-filament-path-blender) · [開発を応援する / GitHub Sponsors](https://github.com/sponsors/Psych0h3ad)

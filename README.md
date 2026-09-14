@@ -1,6 +1,6 @@
-# Bambu Rounded Beads for Blender
+# Bambu Filament Path for Blender
 
-[English](README.en.md) · [ダウンロード](https://github.com/Psych0h3ad/bambu-rounded-beads-blender/releases/latest) · [GitHub Sponsors](https://github.com/sponsors/Psych0h3ad)
+[English](README.en.md) · [ダウンロード](https://github.com/Psych0h3ad/bambu-filament-path-blender/releases/latest) · [GitHub Sponsors](https://github.com/sponsors/Psych0h3ad)
 
 3Dプリントしたものを、それっぽくレンダリングしたい。積層も、樹脂が止まるところの丸みも欲しい。そんなときのために作ったBlenderアドオンです。
 
@@ -8,10 +8,12 @@ Bambu Studioから書き出したG-codeを読み、線幅・積層ピッチ・�
 
 ## インストール
 
-1. [Releases](https://github.com/Psych0h3ad/bambu-rounded-beads-blender/releases/latest)から **Bambu_Rounded_Beads-1.1.0.zip** をダウンロードします。GitHubの「Source code (zip)」とは別です。
+1. [Releases](https://github.com/Psych0h3ad/bambu-filament-path-blender/releases/latest)から **Bambu_Filament_Path-1.1.1.zip** をダウンロードします。GitHubの「Source code (zip)」とは別です。
 2. Blenderの **Edit → Preferences → Add-ons** を開きます。
 3. 右上のメニューから **Install from Disk** を選び、ダウンロードしたZIPをそのまま指定します。
-4. **Bambu Rounded Beads** を有効にします。
+4. **Bambu Filament Path** を有効にします。
+
+v1.1.1は名称を整理した更新です。形状処理・初期設定はv1.1.0と同じで、既存版を上書きして更新できます。
 
 既存バージョンからZIPで更新した場合は、**Blenderをいったん終了して起動し直してから**G-codeを再インポートしてください。表示上のバージョンが更新されても、起動中のBlenderに古い内部モジュールが残る場合があります。以前のメッシュが自動で更新されるわけではありません。
 
@@ -20,9 +22,9 @@ Blenderに同梱のNumPyを使うため、通常は追加インストール不�
 ## 使い方
 
 1. Bambu Studioで、まず**オブジェクトが1個だけのプレート**をスライスし、注釈を含む `.gcode` を書き出します。対応確認はBambu Studio 2.8.2.61です。
-2. BlenderをObject Modeにし、**File → Import → Bambu G-code — Rounded Beads (.gcode)** を選びます。
+2. BlenderをObject Modeにし、**File → Import → Bambu G-code — Filament Path (.gcode)** を選びます。
 3. G-codeを選びます。オブジェクトが1個なら **Object Label** は空欄で構いません。
-4. **Round Wall Corners** はオンが初期値です。**Center XY / Ground Z** と **Match Native Black** を必要に応じて設定し、**Import Rounded Beads** を押します。高精細な曲面は初期値で作られます。
+4. **Round Wall Corners** はオンが初期値です。**Center XY / Ground Z** と **Match Native Black** を必要に応じて設定し、**Import Filament Path** を押します。高精細な曲面は初期値で作られます。
 5. `MakerChip_Rounded` が追加されます。元のOBJなどが重なっている場合は、元モデルをビューポートとレンダーの両方で非表示にします。
 6. カメラ・ライト・マテリアルを調整してレンダリングします。既存シーンのカメラや照明は変更しません。
 
@@ -41,7 +43,7 @@ Blenderに同梱のNumPyを使うため、通常は追加インストール不�
 
 ## どこを丸めるのか
 
-- 全ビードの断面を、線幅とレイヤー高さから26点で作ります。円形・縦長楕円は上下左右の極値を通る24点にし、層の高さを保ちます。
+- 各押出線の断面を、線幅とレイヤー高さから26点で作ります。円形・縦長楕円は上下左右の極値を通る24点にし、層の高さを保ちます。
 - 実際に開いている経路の端に、11段の中間リングからなるドームを追加します。伸びる量は、その場所の線幅の半分です。中心線・線幅・高さを保ち、曲面そのものの分割数を増やしています。
 - 外壁・内壁の曲がりでは、尖ったmiterが半径方向に0.001mmを超えて張り出す角を丸めます。円周64分割相当以上、弦誤差0.00025mm以内で外側の円弧を作ります。見えない内側は省き、短い線分などでは欠けを防ぐため完全な円盤形状を残します。露出インフィルなど、外壁・内壁以外の経路の曲がりはこの処理の対象外です。
 - 同じ経路の途中にある線幅変化や、メッシュ化のための分割点には、余計な丸い膨らみを作りません。
@@ -83,7 +85,7 @@ blender --background --factory-startup --python tests/blender_smoke.py
 
 こういう地味に欲しいツールを、ちまちま作っています。役に立ったら、[GitHub Sponsors](https://github.com/sponsors/Psych0h3ad)で開発を応援してもらえると嬉しいです。スポンサー募集中です。
 
-不具合や改善案は[Issues](https://github.com/Psych0h3ad/bambu-rounded-beads-blender/issues)へどうぞ。再現データを添付する場合は、ご自身が公開できるものだけにしてください。
+不具合や改善案は[Issues](https://github.com/Psych0h3ad/bambu-filament-path-blender/issues)へどうぞ。再現データを添付する場合は、ご自身が公開できるものだけにしてください。
 
 ## ライセンス
 

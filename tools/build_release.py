@@ -13,7 +13,7 @@ info = next(node.value for node in ast.parse((PACKAGE / '__init__.py').read_text
 version = '.'.join(map(str, ast.literal_eval(info)['version']))
 output = ROOT / 'dist'
 output.mkdir(exist_ok=True)
-archive = output / f'Bambu_Rounded_Beads-{version}.zip'
+archive = output / f'Bambu_Filament_Path-{version}.zip'
 files = {str(p.relative_to(ROOT)).replace('\\', '/'): p for p in PACKAGE.rglob('*.py')}
 for filename in ('LICENSE', 'README.md', 'README.en.md'):
     files[f'makerchip_rounded_import/{filename}'] = ROOT / filename

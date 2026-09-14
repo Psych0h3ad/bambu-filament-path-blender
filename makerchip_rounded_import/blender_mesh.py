@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Psych0h3ad
 
-"""Create a Blender mesh from the bundled rounded-bead core arrays.
+"""Create a Blender mesh from the bundled filament-path core arrays.
 
 The core uses millimeters; Blender receives meters. No existing scene object,
 material, camera, render engine or world is replaced by this helper.
@@ -102,7 +102,7 @@ def create_object(context, arrays, metadata, name='MakerChip_Rounded', center_xy
             old.select_set(False)
         obj.select_set(True)
         context.view_layer.objects.active = obj
-        obj['makerchip_importer'] = 'Bambu Rounded Beads'
+        obj['makerchip_importer'] = 'Bambu Filament Path'
         obj['source_units'] = 'mm; converted to Blender meters'
         obj['removed_origin_mm'] = [float(x) for x in offset]
         obj['source_gcode'] = str(metadata.get('source_gcode', ''))
@@ -117,7 +117,7 @@ def create_object(context, arrays, metadata, name='MakerChip_Rounded', center_xy
         cleanup = metadata.get('coplanar_cleanup', {})
         obj['coplanar_top_cleanup'] = json.dumps({key: cleanup.get(key) for key in (
             'changed_top_quads', 'new_intersection_vertices', 'original_vertices_unchanged', 'plane_offset_mm')})
-        obj['visualization_note'] = 'Illustrative bead geometry; not a fused polymer flow simulation.'
+        obj['visualization_note'] = 'Illustrative filament path geometry; not a fused polymer flow simulation.'
         context.view_layer.update()
         return obj
     except Exception:
