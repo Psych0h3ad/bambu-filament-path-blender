@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+.venv/
+dist/
+*.blend*
+*.gcode
+*.3mf
+*.npz
+*.stl
+test-output/
