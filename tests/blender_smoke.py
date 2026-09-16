@@ -10,7 +10,7 @@ import bpy
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tests'))
-from test_core import synthetic_gcode
+from test_core import synthetic_gcode, synthetic_qidi_gcode
 
 if '--' in sys.argv:
     archive = Path(sys.argv[sys.argv.index('--') + 1]).resolve()
@@ -25,7 +25,7 @@ else:
     addon.register()
 
 assert addon.bl_info['name'] == 'Bambu Filament Path'
-assert addon.bl_info['version'] == (1, 1, 1)
+assert addon.bl_info['version'] == (1, 1, 2)
 assert addon.IMPORT_SCENE_OT_bambu_rounded_beads.bl_label == 'Import Filament Path'
 
 existing = {obj.name for obj in bpy.data.objects}
@@ -62,5 +62,26 @@ with tempfile.TemporaryDirectory(dir=output) as folder:
               'faces': len(obj.data.polygons), 'zip_installed': '--' in sys.argv,
               'existing_scene_retained': True, 'source_unchanged': True,
               'source_absolute_path_omitted': True, 'normals': True, 'material_ids': True}
+    qidi_path = Path(folder) / 'synthetic-qidi.gcode'
+    qidi_path.write_text(synthetic_qidi_gcode(), encoding='utf-8')
+    qidi_before = hashlib.sha256(qidi_path.read_bytes()).hexdigest()
+    before_second = {item.name for item in bpy.data.objects}
+    result = bpy.ops.import_scene.bambu_rounded_beads(filepath=str(qidi_path))
+    assert result == {'FINISHED'}, result
+    qidi = bpy.context.view_layer.objects.active
+    assert before_second.issubset({item.name for item in bpy.data.objects})
+    assert abs(qidi.dimensions.z - .0006) < 1e-9
+    assert qidi['source_gcode'] == 'synthetic-qidi.gcode'
+    assert qidi['source_object_label'] == 'generated-qidi'
+    assert qidi.data.has_custom_normals
+    assert {face.material_index for face in qidi.data.polygons} == {0, 1, 2}
+    assert json.loads(qidi['round_wall_corners'])['count'] == 2
+    assert json.loads(qidi['rounded_caps'])['open_terminal'] == 6
+    assert qidi['cap_intermediate_rings'] == 11
+    assert hashlib.sha256(qidi_path.read_bytes()).hexdigest() == qidi_before
+    report['qidi_04_nozzle_synthetic'] = {'pass': True, 'vertices': len(qidi.data.vertices),
+        'faces': len(qidi.data.polygons), 'annotated_heights_mm': [.2, .4],
+        'widths_mm': [.42, .45, .5, .09, .407], 'materials': 3,
+        'source_unchanged': True, 'existing_scene_retained': True}
     (output / 'blender_smoke.json').write_text(json.dumps(report, indent=2), encoding='utf-8')
     print(json.dumps(report))

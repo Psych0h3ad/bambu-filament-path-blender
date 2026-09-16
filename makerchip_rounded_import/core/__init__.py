@@ -51,7 +51,7 @@ def inspect_gcode(filepath):
     with path.open('r', encoding='utf-8-sig', errors='strict') as stream:
         for raw in stream:
             line = raw.strip()
-            if line.startswith('; BambuStudio '):
+            if line.startswith(('; BambuStudio ', '; QIDIStudio ')):
                 slicer = line[2:]
             if line == '; CONFIG_BLOCK_START':
                 in_config = True
@@ -294,21 +294,21 @@ def build_from_gcode(filepath, object_label=None, ring_resolution=26,
     # Audit intact bead volumes above. Removing already-covered top surface
     # fragments is a surface operation, so old contiguous bead ranges retire.
     del mesh
-    progress('Removing duplicate coplanar top coverage')
-    result, cleanup = coplanar_cleanup.top_cleanup(result)
+    progress('Removing duplicate coplanar top and bottom coverage')
+    result, cleanup = coplanar_cleanup.flat_surface_cleanup(result)
     report['source_bead_paths'] = report.pop('paths')
     report['pre_cleanup_counts'] = report['counts'].copy()
     report['counts'].update(vertices=len(result['vertices']), quads=len(result['quads']), triangles=len(result['triangles']))
     report['coplanar_cleanup'] = cleanup
     report['path_range_scope'] = 'Source bead paths refer to the pre-cleanup mesh; output arrays intentionally omit stale per-path ranges.'
     report['source_path_ranges_columns'] = report.pop('path_ranges_columns', [])
-    report['rounded_terminal_audit_scope'] = 'Pre-cleanup closed bead components. Final surface cleanup preserves source coordinates and removes duplicate same-material, exact-plane top coverage; independent bead watertightness is not asserted afterward.'
+    report['rounded_terminal_audit_scope'] = 'Pre-cleanup closed bead components. Final surface cleanup preserves source coordinates and removes duplicate same-material, exact-plane, same-facing horizontal coverage; independent bead watertightness is not asserted afterward.'
     report['npz_schema'] = {key: {'shape': list(value.shape), 'dtype': str(value.dtype)} for key, value in result.items()}
     report.update({'source_gcode': Path(filepath).name, 'gcode': info,
                    'normalization_removed_xyz_mm': offset,
                    'coordinate_system': 'Millimeters, bed XY offset removed; original deposition Z. GUI may center final mesh bounds and place its bottom at zero.',
                    'elapsed_build_seconds': time.perf_counter()-begun,
                    'array_bytes': sum(v.nbytes for v in result.values()),
-                   'scope': 'Annotated Bambu G-code, selected object, all feature roles including exposed sparse infill. High resolution bead sections and genuine end domes; round convex joins on Outer wall and Inner wall. Coplanar top coverage cleanup retains exact source coordinates. Separate volumes may overlap. No centerline smoothing, reslicing, Boolean fusion, or physical flow simulation.'})
+                   'scope': 'Annotated Bambu-compatible G-code, selected object, all feature roles including exposed sparse infill. High resolution bead sections and genuine end domes; round convex joins on Outer wall and Inner wall. Coplanar top and bottom coverage cleanup retains exact source coordinates and facing. Separate volumes may overlap. No centerline smoothing, reslicing, Boolean fusion, or physical flow simulation.'})
     progress('Rounded geometry ready')
     return result, report

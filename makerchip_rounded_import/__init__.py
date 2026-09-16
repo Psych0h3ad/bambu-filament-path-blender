@@ -5,7 +5,7 @@
 bl_info = {
     'name': 'Bambu Filament Path',
     'author': 'Psych0h3ad.tech',
-    'version': (1, 1, 1),
+    'version': (1, 1, 2),
     'blender': (4, 5, 0),
     'location': 'File > Import > Bambu G-code — Filament Path (.gcode)',
     'description': 'Render filament paths with smooth cross-sections, rounded ends and wall bends',

@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.2 — 2026-09-16
+
+- Recognize `QIDIStudio` headers in input metadata; preserve path extraction, source dimensions, and import defaults.
+- Extend exact-plane duplicate-coverage cleanup to bottom surfaces, addressing black specks when viewing bed-side logos. Keep same-material and same-facing guards, original coordinates, normals, and provenance; retain the top-only helper for compatibility.
+- Add bottom-surface regression tests for overlap area, winding, materials, opposite-facing guards, and absence of artificial plane offsets.
+- Validate v1.1.2 import and logo-side rendering of one QIDIStudio 02.07.02.60 / Q2 / 0.4 mm-nozzle chip with 15 layers in Blender 5.2.1 LTS. Confirm the bottom-surface speck fix under unchanged camera and lighting; include one rendered example in both READMEs. Compatibility remains limited to supported annotations, not all QIDI G-code dialects.
+- Add generated 0.4 mm-nozzle regression fixtures with 0.42/0.45/0.50 mm widths, narrow gap infill, and a Bridge path annotated with 0.4 mm height. Check actual geometry, material IDs, true terminal continuity, and Blender importing.
+- Verify that changing only the declared nozzle diameter does not resize geometry: dimensions continue to come from `LINE_WIDTH` and `LAYER_HEIGHT`.
+- Keep user models, G-code, and printer profiles out of the repository and release ZIP.
+
 ## 1.1.1 — 2026-09-14
 
 - Rename the product to Bambu Filament Path across the Blender interface, documentation, and installable ZIP.

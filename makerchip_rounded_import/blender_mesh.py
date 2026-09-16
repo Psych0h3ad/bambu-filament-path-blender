@@ -116,7 +116,7 @@ def create_object(context, arrays, metadata, name='MakerChip_Rounded', center_xy
             'section_resolution', 'minimum_angular_sides', 'angular_chord_error_mm')})
         cleanup = metadata.get('coplanar_cleanup', {})
         obj['coplanar_top_cleanup'] = json.dumps({key: cleanup.get(key) for key in (
-            'changed_top_quads', 'new_intersection_vertices', 'original_vertices_unchanged', 'plane_offset_mm')})
+            'changed_top_quads', 'changed_bottom_quads', 'new_intersection_vertices', 'original_vertices_unchanged', 'plane_offset_mm')})
         obj['visualization_note'] = 'Illustrative filament path geometry; not a fused polymer flow simulation.'
         context.view_layer.update()
         return obj

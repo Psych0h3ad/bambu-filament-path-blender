@@ -8,12 +8,12 @@ It reconstructs illustrative deposited-filament cross-sections from the original
 
 ## Install
 
-1. Download **Bambu_Filament_Path-1.1.1.zip** from [Releases](https://github.com/Psych0h3ad/bambu-filament-path-blender/releases/latest). Use the installable asset, not GitHub's automatic “Source code (zip)”.
+1. Download **Bambu_Filament_Path-1.1.2.zip** from [Releases](https://github.com/Psych0h3ad/bambu-filament-path-blender/releases/latest). Use the installable asset, not GitHub's automatic “Source code (zip)”.
 2. In Blender, open **Edit → Preferences → Add-ons**.
 3. Open the upper-right menu, choose **Install from Disk**, and select the ZIP without extracting it.
 4. Enable **Bambu Filament Path**.
 
-Version 1.1.1 updates the product name. Geometry and defaults are unchanged from v1.1.0, and the existing installation can be updated in place.
+Version 1.1.2 recognizes the QIDIStudio header, adds validation for input sliced with a 0.4 mm nozzle setting, and addresses dark specks caused by duplicate bottom surfaces. Width/height interpretation and import defaults remain the same as v1.1.1. Existing installations can be updated in place.
 
 When upgrading an existing installation from a ZIP, **quit and restart Blender before re-importing the G-code**. The displayed add-on version may update while the running process still caches older internal modules. Previously imported meshes are not updated automatically.
 
@@ -39,6 +39,18 @@ Uses NumPy bundled with Blender; no additional Python installation is normally n
 
 There is no nozzle-diameter input. Extruded-line dimensions come from the G-code's **LINE_WIDTH / LAYER_HEIGHT** annotations. Nozzle diameter and deposited line width are different values.
 
+### Does it work with a 0.4 mm nozzle?
+
+**Use the same add-on; no separate 0.4 mm edition is needed.** It reads dimensions for each path instead of fixing the line width at 0.2 or 0.4 mm. Widths such as 0.42, 0.45, and 0.50 mm, narrow gap infill, and Bridge paths with a different annotated height each retain their own dimensions.
+
+A real 40 mm chip exported by **QIDIStudio 02.07.02.60 with the Q2 / 0.4 mm nozzle profile** was imported with the v1.1.2 Blender importer and verified with a logo-side render in Blender 5.2.1 LTS. This input has 15 layers, normally 0.2 mm high, and actual annotated widths of approximately 0.0904–0.76361 mm. Its Bridge paths carry `LAYER_HEIGHT: 0.4`, which is retained. The importer does not infer replacement dimensions from the nozzle diameter or force every path to 0.2 mm high.
+
+![Logo-side render of a chip from QIDIStudio with a 0.4 mm nozzle setting](https://raw.githubusercontent.com/Psych0h3ad/bambu-filament-path-blender/v1.1.2/docs/images/qidi-04-logo.png)
+
+*A 15-layer, 3 mm-thick chip reconstructed from G-code sliced for a 0.4 mm nozzle, rendered from the bed-side logo face.*
+
+This validation is limited to that annotated QIDIStudio output. It does not establish support for every QIDI printer, profile, or other slicer such as QIDI Slicer. Specify **Object Label** for a multi-object plate, or export a one-object plate. Private model and G-code files are not distributed; public regression tests use small generated fixtures.
+
 ## Geometry
 
 - All filament paths use 26-point flattened sections. Circular/vertical-ellipse cases use 24 points to include exact width and height extrema.
@@ -47,13 +59,13 @@ There is no nozzle-diameter input. Extruded-line dimensions come from the G-code
 - No expanding caps at same-path width transitions or synthetic meshing subdivisions; closed paths receive no terminal domes.
 - Includes supported deposition roles such as exposed sparse infill and preserves tool/material IDs.
 - No straight-path simplification. XY G2/G3 arcs use a target maximum chord error of 0.001 mm while preserving the source arc center, direction, and move endpoint.
-- Removes duplicate coverage where flat top faces have the same material and exactly the same height. Original vertices stay fixed; clipping intersections are added on the original plane. This addresses dark specks caused by overlapping faces.
+- Removes duplicate coverage where flat top or bottom faces have the same material, exactly the same height, and the same facing direction. Original vertices stay fixed; clipping intersections are added on the original plane. This addresses dark specks caused by overlapping faces. Version 1.1.2 also handles bottom surfaces, such as a logo viewed from below. Opposite-facing surfaces and different materials remain separate.
 
 This is **illustrative rendering geometry**, not polymer-flow, fusion, or volume-conservation simulation. Separate extruded-filament volumes may overlap. It is not a Boolean-unified printable replacement model.
 
 ## Input scope and performance
 
-Requires Bambu annotations including `filament_colour` inside `CONFIG_BLOCK`, object identifiers, `FEATURE`, `LINE_WIDTH`, and `LAYER_HEIGHT`. Does not directly import 3MF or OBJ. Arbitrary G-code dialects, other arc planes such as G18/G19, and radius-form arcs are not guaranteed to work.
+Requires Bambu-style annotations including `filament_colour` inside `CONFIG_BLOCK`, object identifiers, `FEATURE`, `LINE_WIDTH`, and `LAYER_HEIGHT`. Does not directly import 3MF or OBJ. Arbitrary G-code dialects, other arc planes such as G18/G19, and radius-form arcs are not guaranteed to work.
 
 A 40 mm, 30-layer chip can produce tens of millions of vertices. High-resolution sections, ends, and corners use more memory than v1.0.0. Importing and rendering can require several gigabytes or more, depending strongly on the file and computer. Start with one object.
 

@@ -39,7 +39,98 @@ G1 X10 Y0 E0.01
 '''
 
 
+def synthetic_qidi_gcode():
+    """Generated dimensions only; contains no user model or printer profile."""
+    return '''; QIDIStudio 02.07.02.60
+; CONFIG_BLOCK_START
+; nozzle_diameter = 0.4
+; layer_height = 0.2
+; filament_colour = #FFFFFF;#0088FF;#FF8800
+; CONFIG_BLOCK_END
+G90
+M83
+G1 X0 Y0 Z0.2
+T0
+; OBJECT_ID: generated-qidi
+; FEATURE: Outer wall
+; LINE_WIDTH: 0.42
+; LAYER_HEIGHT: 0.2
+; Z_HEIGHT: 0.2
+G1 X5 Y0 E0.1
+; LINE_WIDTH: 0.45
+G1 X5 Y5 E0.1
+; LINE_WIDTH: 0.5
+G1 X10 Y5 E0.1
+G1 X0 Y8
+T1
+; FEATURE: Gap infill
+; LINE_WIDTH: 0.09
+G1 X5 Y8 E0.01
+G1 X0 Y11 Z0.6
+T2
+; FEATURE: Bridge
+; LINE_WIDTH: 0.407
+; LAYER_HEIGHT: 0.4
+; Z_HEIGHT: 0.6
+G1 X5 Y11 E0.1
+; stop printing object
+'''
+
+
 class GeometryTests(unittest.TestCase):
+    def test_bambu_and_qidi_slicer_headers(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'header.gcode'
+            for text, expected in ((synthetic_gcode(), 'BambuStudio synthetic test'),
+                                   (synthetic_qidi_gcode(), 'QIDIStudio 02.07.02.60')):
+                path.write_text(text, encoding='utf-8')
+                self.assertEqual(core.inspect_gcode(path)['slicer'], expected)
+
+    def test_qidi_04_nozzle_preserves_variable_width_and_bridge_height(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'generated-qidi.gcode'
+            original = synthetic_qidi_gcode()
+            path.write_text(original, encoding='utf-8')
+            paths, info = core.extract_paths(path)
+            self.assertEqual(info['settings']['nozzle_diameter'], '0.4')
+            self.assertEqual([p['width_mm'] for p in paths], [.42, .45, .5, .09, .407])
+            self.assertEqual(info['height_values_mm'], [.2, .4])
+            self.assertEqual(info['continuous_path_count'], 3)
+            self.assertEqual([p['tool_index'] for p in paths], [0, 0, 0, 1, 2])
+            for item in paths:
+                lateral, vertical, *_ = core.bead_mesh._section(item['width_mm'], item['layer_height_mm'], 26)
+                self.assertAlmostEqual(float(np.ptp(lateral)), item['width_mm'])
+                self.assertAlmostEqual(float(np.ptp(vertical)), item['layer_height_mm'])
+
+            mesh, report = core.build_from_gcode(path, audit=True)
+            self.assertTrue(report['rounded_terminal_audit']['pass'])
+            self.assertTrue(report['round_join_audit']['pass'])
+            self.assertEqual(report['rounded_terminals']['counts']['open_terminal'], 6)
+            self.assertEqual(report['round_path_joins']['count'], 2)
+            self.assertAlmostEqual(float(mesh['vertices'][:, 2].min()), 0., places=6)
+            self.assertAlmostEqual(float(mesh['vertices'][:, 2].max()), .6, places=6)
+            self.assertEqual(set(mesh['quad_material_indices']) | set(mesh['triangle_material_indices']), {0, 1, 2})
+
+            source = report['source_bead_paths']
+            gap = next(p for p in source if p.get('feature') == 'Gap infill')
+            self.assertEqual(gap['section'], 'circle_or_vertical_ellipse_24')
+            bridge = next(p for p in source if p.get('feature') == 'Bridge')
+            self.assertEqual(bridge['layer_height_mm'], .4)
+            for item in source:
+                for cap in item.get('terminal_caps', []):
+                    if cap['kind'] == 'rounded_open_terminal':
+                        self.assertAlmostEqual(cap['extent_mm'], item['width_mm']*.5)
+                        self.assertEqual(cap['intermediate_rings'], 11)
+
+            # Changing only the declared nozzle must not resize deposited lines.
+            path.write_text(original.replace('nozzle_diameter = 0.4', 'nozzle_diameter = 0.2'), encoding='utf-8')
+            other, _ = core.build_from_gcode(path)
+            self.assertEqual(mesh.keys(), other.keys())
+            for key in mesh:
+                self.assertTrue(np.array_equal(mesh[key], other[key]), key)
+            path.write_text(original, encoding='utf-8')
+            self.assertEqual(path.read_text(encoding='utf-8'), original)
+
     def test_arc_refinement_preserves_circle_direction_and_endpoint(self):
         start=[2.,0.,.1]
         for clockwise,end in ((False,[0.,2.,.1]),(True,[0.,-2.,.1]),(False,[2.,0.,.1]),(True,[2.,0.,.1])):
